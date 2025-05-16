@@ -1,9 +1,10 @@
 import 'dart:io' show Platform;
 
-import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart'
     show TargetPlatform, defaultTargetPlatform, kDebugMode, kIsWeb;
 import 'package:flutter/material.dart';
+
+import 'quill_native_provider.dart';
 
 // Android
 
@@ -26,15 +27,7 @@ Future<bool> isIOSSimulator() async {
     return false;
   }
 
-  final deviceInfo = DeviceInfoPlugin();
-
-  final osInfo = await deviceInfo.deviceInfo;
-
-  if (osInfo is IosDeviceInfo) {
-    final iosInfo = osInfo;
-    return !iosInfo.isPhysicalDevice;
-  }
-  return false;
+  return await QuillNativeProvider.instance.isIOSSimulator();
 }
 
 // Mobile

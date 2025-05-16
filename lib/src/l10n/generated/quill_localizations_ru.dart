@@ -1,3 +1,5 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
 import 'quill_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -130,7 +132,7 @@ class FlutterQuillLocalizationsRu extends FlutterQuillLocalizations {
   String get alignRight => 'Выровнять по правому краю';
 
   @override
-  String get alignJustify => 'Align justify';
+  String get alignJustify => 'Выравнивание по ширине';
 
   @override
   String get justifyWinWidth => 'Выровнять по ширине окна';
@@ -142,25 +144,25 @@ class FlutterQuillLocalizationsRu extends FlutterQuillLocalizations {
   String get headerStyle => 'Стиль заголовка';
 
   @override
-  String get normal => 'Normal';
+  String get normal => 'Обычный';
 
   @override
-  String get heading1 => 'Heading 1';
+  String get heading1 => 'Заголовок 1';
 
   @override
-  String get heading2 => 'Heading 2';
+  String get heading2 => 'Заголовок 2';
 
   @override
-  String get heading3 => 'Heading 3';
+  String get heading3 => 'Заголовок 3';
 
   @override
-  String get heading4 => 'Heading 4';
+  String get heading4 => 'Заголовок 4';
 
   @override
-  String get heading5 => 'Heading 5';
+  String get heading5 => 'Заголовок 5';
 
   @override
-  String get heading6 => 'Heading 6';
+  String get heading6 => 'Заголовок 6';
 
   @override
   String get numberedList => 'Нумерованный список';
@@ -231,7 +233,7 @@ class FlutterQuillLocalizationsRu extends FlutterQuillLocalizations {
 
   @override
   String theImageHasBeenSavedAt(String imagePath) {
-    return 'The image has been saved at: $imagePath';
+    return 'Изображение сохранено по адресу: $imagePath';
   }
 
   @override
@@ -262,10 +264,10 @@ class FlutterQuillLocalizationsRu extends FlutterQuillLocalizations {
       'Учет регистра и поиск по всему слову';
 
   @override
-  String get caseSensitive => 'Case sensitive';
+  String get caseSensitive => 'Чувствителен к регистру';
 
   @override
-  String get wholeWord => 'Whole word';
+  String get wholeWord => 'Целое слово';
 
   @override
   String get insertImage => 'Вставить изображение';
@@ -288,20 +290,49 @@ class FlutterQuillLocalizationsRu extends FlutterQuillLocalizations {
   String get recordAVideoUsingYourCamera => 'Запишите видео, используя камеру';
 
   @override
-  String get pasteAVideoUsingALink => 'Paste a video using a link';
+  String get pasteAVideoUsingALink => 'Вставить видео по ссылке';
 
   @override
-  String get close => 'Close';
+  String get close => 'Закрыть';
 
   @override
-  String get searchSettings => 'Search settings';
+  String get searchSettings => 'Настройки поиска';
 
   @override
-  String get cut => 'Cut';
+  String get cut => 'Вырезать';
 
   @override
-  String get paste => 'Paste';
+  String get paste => 'Вставить';
 
   @override
-  String get insertTable => 'Insert table';
+  String get insertTable => 'Вставить таблицу';
+
+  @override
+  String get insertVideo => 'Insert video';
+
+  @override
+  String get errorUnexpectedSavingImage =>
+      'An unexpected error occurred while saving the image. Please try again.';
+
+  @override
+  String get successImageSavedGallery => 'Image saved to your gallery.';
+
+  @override
+  String get successImageSaved => 'Image saved successfully.';
+
+  @override
+  String get successImageDownloaded => 'Image downloaded successfully.';
+
+  @override
+  String get openGallery => 'Open Gallery';
+
+  @override
+  String get openFileLocation => 'Open File Location';
+
+  @override
+  String get openFile => 'Open File';
+
+  @override
+  String get saveImagePermissionDenied =>
+      'Couldn’t save the image due to missing permission';
 }

@@ -1,3 +1,5 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
 import 'quill_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -130,7 +132,7 @@ class FlutterQuillLocalizationsFr extends FlutterQuillLocalizations {
   String get alignRight => 'Aligner à droite';
 
   @override
-  String get alignJustify => 'Align justify';
+  String get alignJustify => 'Justifier le texte';
 
   @override
   String get justifyWinWidth => 'Justifier';
@@ -231,7 +233,7 @@ class FlutterQuillLocalizationsFr extends FlutterQuillLocalizations {
 
   @override
   String theImageHasBeenSavedAt(String imagePath) {
-    return 'The image has been saved at: $imagePath';
+    return 'L\'image a été sauvegardée à : $imagePath';
   }
 
   @override
@@ -263,10 +265,10 @@ class FlutterQuillLocalizationsFr extends FlutterQuillLocalizations {
       'Sensibilité à la casse et recherche de mots entiers';
 
   @override
-  String get caseSensitive => 'Case sensitive';
+  String get caseSensitive => 'Respecter la casse';
 
   @override
-  String get wholeWord => 'Whole word';
+  String get wholeWord => 'Mot entier';
 
   @override
   String get insertImage => 'Insérer une image';
@@ -294,17 +296,46 @@ class FlutterQuillLocalizationsFr extends FlutterQuillLocalizations {
   String get pasteAVideoUsingALink => 'Coller une vidéo à l\'aide d\'un lien';
 
   @override
-  String get close => 'Close';
+  String get close => 'Fermer';
 
   @override
-  String get searchSettings => 'Search settings';
+  String get searchSettings => 'Paramètres de recherche';
 
   @override
-  String get cut => 'Cut';
+  String get cut => 'Couper';
 
   @override
-  String get paste => 'Paste';
+  String get paste => 'Coller';
 
   @override
-  String get insertTable => 'Insert table';
+  String get insertTable => 'Insérer un tableau';
+
+  @override
+  String get insertVideo => 'Insert video';
+
+  @override
+  String get errorUnexpectedSavingImage =>
+      'An unexpected error occurred while saving the image. Please try again.';
+
+  @override
+  String get successImageSavedGallery => 'Image saved to your gallery.';
+
+  @override
+  String get successImageSaved => 'Image saved successfully.';
+
+  @override
+  String get successImageDownloaded => 'Image downloaded successfully.';
+
+  @override
+  String get openGallery => 'Open Gallery';
+
+  @override
+  String get openFileLocation => 'Open File Location';
+
+  @override
+  String get openFile => 'Open File';
+
+  @override
+  String get saveImagePermissionDenied =>
+      'Couldn’t save the image due to missing permission';
 }

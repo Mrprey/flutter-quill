@@ -1,3 +1,5 @@
+// ignore: unused_import
+import 'package:intl/intl.dart' as intl;
 import 'quill_localizations.dart';
 
 // ignore_for_file: type=lint
@@ -130,7 +132,7 @@ class FlutterQuillLocalizationsRo extends FlutterQuillLocalizations {
   String get alignRight => 'Aliniază la dreapta';
 
   @override
-  String get alignJustify => 'Align justify';
+  String get alignJustify => 'Justificare';
 
   @override
   String get justifyWinWidth => 'Justifică lățimea ferestrei';
@@ -230,7 +232,7 @@ class FlutterQuillLocalizationsRo extends FlutterQuillLocalizations {
 
   @override
   String theImageHasBeenSavedAt(String imagePath) {
-    return 'The image has been saved at: $imagePath';
+    return 'Imaginea a fost salvată la: $imagePath';
   }
 
   @override
@@ -263,10 +265,10 @@ class FlutterQuillLocalizationsRo extends FlutterQuillLocalizations {
       'Sensibilitate la majuscule și căutare cuvânt întreg';
 
   @override
-  String get caseSensitive => 'Case sensitive';
+  String get caseSensitive => 'Sensibilitate la majuscule și minuscule';
 
   @override
-  String get wholeWord => 'Whole word';
+  String get wholeWord => 'Cuvânt întreg';
 
   @override
   String get insertImage => 'Introdu imaginea';
@@ -291,19 +293,48 @@ class FlutterQuillLocalizationsRo extends FlutterQuillLocalizations {
   String get pasteAVideoUsingALink => 'Lipește un video folosind un link';
 
   @override
-  String get close => 'Close';
+  String get close => 'Închide';
 
   @override
-  String get searchSettings => 'Search settings';
+  String get searchSettings => 'Setări de căutare';
 
   @override
-  String get cut => 'Cut';
+  String get cut => 'Tăia';
 
   @override
-  String get paste => 'Paste';
+  String get paste => 'Lipire';
 
   @override
-  String get insertTable => 'Insert table';
+  String get insertTable => 'Inserare tabel';
+
+  @override
+  String get insertVideo => 'Insert video';
+
+  @override
+  String get errorUnexpectedSavingImage =>
+      'An unexpected error occurred while saving the image. Please try again.';
+
+  @override
+  String get successImageSavedGallery => 'Image saved to your gallery.';
+
+  @override
+  String get successImageSaved => 'Image saved successfully.';
+
+  @override
+  String get successImageDownloaded => 'Image downloaded successfully.';
+
+  @override
+  String get openGallery => 'Open Gallery';
+
+  @override
+  String get openFileLocation => 'Open File Location';
+
+  @override
+  String get openFile => 'Open File';
+
+  @override
+  String get saveImagePermissionDenied =>
+      'Couldn’t save the image due to missing permission';
 }
 
 /// The translations for Romanian Moldavian Moldovan, as used in Romania (`ro_RO`).
@@ -434,6 +465,9 @@ class FlutterQuillLocalizationsRoRo extends FlutterQuillLocalizationsRo {
   String get alignRight => 'Aliniază la dreapta';
 
   @override
+  String get alignJustify => 'Justificare';
+
+  @override
   String get justifyWinWidth => 'Justifică lățimea ferestrei';
 
   @override
@@ -530,6 +564,11 @@ class FlutterQuillLocalizationsRoRo extends FlutterQuillLocalizationsRo {
   String get savedUsingLocalStorage => 'Salvat în stocarea locală';
 
   @override
+  String theImageHasBeenSavedAt(String imagePath) {
+    return 'Imaginea a fost salvată la: $imagePath';
+  }
+
+  @override
   String get errorWhileSavingImage => 'Eroare la salvarea imaginii';
 
   @override
@@ -559,6 +598,12 @@ class FlutterQuillLocalizationsRoRo extends FlutterQuillLocalizationsRo {
       'Sensibilitate la majuscule și căutare cuvânt întreg';
 
   @override
+  String get caseSensitive => 'Sensibilitate la majuscule și minuscule';
+
+  @override
+  String get wholeWord => 'Cuvânt întreg';
+
+  @override
   String get insertImage => 'Introdu imaginea';
 
   @override
@@ -579,4 +624,19 @@ class FlutterQuillLocalizationsRoRo extends FlutterQuillLocalizationsRo {
 
   @override
   String get pasteAVideoUsingALink => 'Lipește un video folosind un link';
+
+  @override
+  String get close => 'Închide';
+
+  @override
+  String get searchSettings => 'Setări de căutare';
+
+  @override
+  String get cut => 'Tăia';
+
+  @override
+  String get paste => 'Lipire';
+
+  @override
+  String get insertTable => 'Inserare tabel';
 }

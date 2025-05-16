@@ -2,17 +2,16 @@ import 'dart:collection';
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:flutter/gestures.dart'
-    show GestureRecognizer, LongPressGestureRecognizer, TapGestureRecognizer;
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart'
-    show BoxParentData, PipelineOwner, BoxHitTestResult, RenderObjectVisitor;
-import 'package:flutter/services.dart' show ClipboardData, Clipboard;
-import 'package:url_launcher/url_launcher_string.dart' show launchUrlString;
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../flutter_quill.dart';
 import '../../../common/utils/color.dart';
 import '../../../common/utils/font.dart';
+import '../../../common/utils/link_validator.dart';
 import '../../../common/utils/platform.dart';
 import '../../../document/nodes/container.dart' as container_node;
 import '../../../document/nodes/leaf.dart' as leaf;
@@ -26,11 +25,13 @@ class TextLine extends StatefulWidget {
   const TextLine({
     required this.line,
     required this.embedBuilder,
+    required this.textSpanBuilder,
     required this.styles,
     required this.readOnly,
     required this.controller,
     required this.onLaunchUrl,
     required this.linkActionPicker,
+    required this.composingRange,
     this.textDirection,
     this.customStyleBuilder,
     this.customRecognizerBuilder,
@@ -41,6 +42,7 @@ class TextLine extends StatefulWidget {
   final Line line;
   final TextDirection? textDirection;
   final EmbedsBuilder embedBuilder;
+  final TextSpanBuilder textSpanBuilder;
   final DefaultStyles styles;
   final bool readOnly;
   final QuillController controller;
@@ -49,6 +51,7 @@ class TextLine extends StatefulWidget {
   final ValueChanged<String>? onLaunchUrl;
   final LinkActionPicker linkActionPicker;
   final List<String> customLinkPrefixes;
+  final TextRange composingRange;
 
   @override
   State<TextLine> createState() => _TextLineState();
@@ -130,6 +133,11 @@ class _TextLineState extends State<TextLine> {
     super.dispose();
   }
 
+  /// Check if this line contains the placeholder attribute
+  bool get isPlaceholderLine =>
+      widget.line.toDelta().first.attributes?.containsKey('placeholder') ??
+      false;
+
   @override
   Widget build(BuildContext context) {
     assert(debugCheckHasMediaQuery(context));
@@ -150,11 +158,13 @@ class _TextLineState extends State<TextLine> {
         return EmbedProxy(
           embedBuilder.build(
             context,
-            widget.controller,
-            embed,
-            widget.readOnly,
-            false,
-            lineStyle,
+            EmbedContext(
+              controller: widget.controller,
+              node: embed,
+              readOnly: widget.readOnly,
+              inline: false,
+              textStyle: lineStyle,
+            ),
           ),
         );
       }
@@ -185,7 +195,12 @@ class _TextLineState extends State<TextLine> {
   InlineSpan _getTextSpanForWholeLine() {
     var lineStyle = _getLineStyle(widget.styles);
     if (!widget.line.hasEmbed) {
-      return _buildTextSpan(widget.styles, widget.line.children, lineStyle);
+      return _buildTextSpan(
+        widget.styles,
+        widget.line.children,
+        lineStyle,
+        widget.textSpanBuilder,
+      );
     }
 
     // The line could contain more than one Embed & more than one Text
@@ -194,8 +209,12 @@ class _TextLineState extends State<TextLine> {
     for (var child in widget.line.children) {
       if (child is Embed) {
         if (textNodes.isNotEmpty) {
-          textSpanChildren
-              .add(_buildTextSpan(widget.styles, textNodes, lineStyle));
+          textSpanChildren.add(_buildTextSpan(
+            widget.styles,
+            textNodes,
+            lineStyle,
+            widget.textSpanBuilder,
+          ));
           textNodes = LinkedList<Node>();
         }
         // Creates correct node for custom embed
@@ -217,11 +236,13 @@ class _TextLineState extends State<TextLine> {
         final embedWidget = EmbedProxy(
           embedBuilder.build(
             context,
-            widget.controller,
-            child,
-            widget.readOnly,
-            true,
-            lineStyle,
+            EmbedContext(
+              controller: widget.controller,
+              node: child,
+              readOnly: widget.readOnly,
+              inline: true,
+              textStyle: lineStyle,
+            ),
           ),
         );
         final embed = embedBuilder.buildWidgetSpan(embedWidget);
@@ -234,7 +255,12 @@ class _TextLineState extends State<TextLine> {
     }
 
     if (textNodes.isNotEmpty) {
-      textSpanChildren.add(_buildTextSpan(widget.styles, textNodes, lineStyle));
+      textSpanChildren.add(_buildTextSpan(
+        widget.styles,
+        textNodes,
+        lineStyle,
+        widget.textSpanBuilder,
+      ));
     }
 
     return TextSpan(style: lineStyle, children: textSpanChildren);
@@ -254,20 +280,104 @@ class _TextLineState extends State<TextLine> {
     return TextAlign.start;
   }
 
-  TextSpan _buildTextSpan(
+  InlineSpan _buildTextSpan(
     DefaultStyles defaultStyles,
     LinkedList<Node> nodes,
     TextStyle lineStyle,
+    TextSpanBuilder textSpanBuilder,
   ) {
     if (nodes.isEmpty && kIsWeb) {
-      nodes = LinkedList<Node>()..add(leaf.QuillText('\u{200B}'));
+      nodes = LinkedList<Node>()..add(leaf.QuillText());
     }
-    final children = nodes
-        .map((node) =>
-            _getTextSpanFromNode(defaultStyles, node, widget.line.style))
-        .toList(growable: false);
+
+    final isComposingRangeOutOfLine = !widget.composingRange.isValid ||
+        widget.composingRange.isCollapsed ||
+        (widget.composingRange.start < widget.line.documentOffset ||
+            widget.composingRange.end >
+                widget.line.documentOffset + widget.line.length);
+
+    if (isComposingRangeOutOfLine) {
+      final children = nodes
+          .map((node) => _getTextSpanFromNode(
+                defaultStyles,
+                node,
+                widget.line.style,
+                textSpanBuilder,
+              ))
+          .toList(growable: false);
+      return TextSpan(children: children, style: lineStyle);
+    }
+
+    final children = nodes.expand((node) {
+      final child = _getTextSpanFromNode(
+        defaultStyles,
+        node,
+        widget.line.style,
+        textSpanBuilder,
+      );
+      final isNodeInComposingRange =
+          node.documentOffset <= widget.composingRange.start &&
+              widget.composingRange.end <= node.documentOffset + node.length;
+      if (isNodeInComposingRange) {
+        return _splitAndApplyComposingStyle(node, child, textSpanBuilder);
+      } else {
+        return [child];
+      }
+    }).toList(growable: false);
 
     return TextSpan(children: children, style: lineStyle);
+  }
+
+  // split the text nodes into composing and non-composing nodes
+  // and apply the composing style to the composing nodes
+  List<InlineSpan> _splitAndApplyComposingStyle(
+    Node node,
+    InlineSpan child,
+    TextSpanBuilder textSpanBuilder,
+  ) {
+    assert(widget.composingRange.isValid && !widget.composingRange.isCollapsed);
+
+    final composingStart = widget.composingRange.start - node.documentOffset;
+    final composingEnd = widget.composingRange.end - node.documentOffset;
+    final text = child.toPlainText();
+
+    final textBefore = text.substring(0, composingStart);
+    final textComposing = text.substring(composingStart, composingEnd);
+    final textAfter = text.substring(composingEnd);
+
+    final composingStyle = child.style
+            ?.merge(const TextStyle(decoration: TextDecoration.underline)) ??
+        const TextStyle(decoration: TextDecoration.underline);
+
+    final isLink = node.style.attributes[Attribute.link.key]?.value != null;
+    final recognizer = _getRecognizer(node, isLink);
+
+    return [
+      textSpanBuilder(
+        context,
+        node,
+        0,
+        textBefore,
+        child.style,
+        recognizer,
+      ),
+      textSpanBuilder(
+        context,
+        node,
+        composingStart,
+        textComposing,
+        composingStyle,
+        recognizer,
+      ),
+      textSpanBuilder(
+        context,
+        node,
+        composingEnd,
+        textAfter,
+        child.style,
+        recognizer,
+      ),
+    ];
   }
 
   TextStyle _getLineStyle(DefaultStyles defaultStyles) {
@@ -325,6 +435,16 @@ class _TextLineState extends State<TextLine> {
         textStyle.merge(textStyle.copyWith(height: x[lineHeight]?.height));
 
     textStyle = _applyCustomAttributes(textStyle, widget.line.style.attributes);
+
+    if (isPlaceholderLine) {
+      final oldStyle = textStyle;
+      textStyle = defaultStyles.placeHolder!.style;
+      textStyle = textStyle.merge(oldStyle.copyWith(
+        color: textStyle.color,
+        backgroundColor: textStyle.backgroundColor,
+        background: textStyle.background,
+      ));
+    }
 
     return textStyle;
   }
@@ -386,14 +506,18 @@ class _TextLineState extends State<TextLine> {
   }
 
   InlineSpan _getTextSpanFromNode(
-      DefaultStyles defaultStyles, Node node, Style lineStyle) {
+    DefaultStyles defaultStyles,
+    Node node,
+    Style lineStyle,
+    TextSpanBuilder textSpanBuilder,
+  ) {
     final textNode = node as leaf.QuillText;
     final nodeStyle = textNode.style;
     final isLink = nodeStyle.containsKey(Attribute.link.key) &&
         nodeStyle.attributes[Attribute.link.key]!.value != null;
     final style =
         _getInlineTextStyle(nodeStyle, defaultStyles, lineStyle, isLink);
-    if (widget.controller.configurations.requireScriptFontFeatures == false &&
+    if (widget.controller.config.requireScriptFontFeatures == false &&
         textNode.value.isNotEmpty) {
       if (nodeStyle.containsKey(Attribute.script.key)) {
         final attr = nodeStyle.attributes[Attribute.script.key];
@@ -404,28 +528,14 @@ class _TextLineState extends State<TextLine> {
       }
     }
 
-    if (!isLink &&
-        !widget.readOnly &&
-        !widget.line.style.attributes.containsKey('code-block') &&
-        !widget.line.style.attributes.containsKey('placeholder') &&
-        !kIsWeb) {
-      final service = SpellCheckerServiceProvider.instance;
-      final spellcheckedSpans = service.checkSpelling(textNode.value);
-      if (spellcheckedSpans != null && spellcheckedSpans.isNotEmpty) {
-        return TextSpan(
-          children: spellcheckedSpans,
-          style: style,
-          mouseCursor: null,
-        );
-      }
-    }
-
     final recognizer = _getRecognizer(node, isLink);
-    return TextSpan(
-      text: textNode.value,
-      style: style,
-      recognizer: recognizer,
-      mouseCursor: (recognizer != null) ? SystemMouseCursors.click : null,
+    return textSpanBuilder(
+      context,
+      textNode,
+      0,
+      textNode.value,
+      style,
+      recognizer,
     );
   }
 
@@ -553,7 +663,7 @@ class _TextLineState extends State<TextLine> {
   }
 
   Future<void> _launchUrl(String url) async {
-    await launchUrlString(url);
+    await launchUrl(Uri.parse(url));
   }
 
   void _tapNodeLink(Node node) {
@@ -562,19 +672,20 @@ class _TextLineState extends State<TextLine> {
     _tapLink(link);
   }
 
-  void _tapLink(String? link) {
+  void _tapLink(final String? inputLink) {
+    var link = inputLink?.trim();
     if (link == null) {
       return;
     }
 
-    var launchUrl = widget.onLaunchUrl;
-    launchUrl ??= _launchUrl;
-
-    link = link.trim();
-    if (!(widget.customLinkPrefixes + linkPrefixes)
-        .any((linkPrefix) => link!.toLowerCase().startsWith(linkPrefix))) {
+    final isValidLink = LinkValidator.validate(link,
+        legacyAddationalLinkPrefixes: widget.customLinkPrefixes);
+    if (!isValidLink) {
       link = 'https://$link';
     }
+
+    // TODO(EchoEllet): Refactor onLaunchUrl or add a new API to give full control of the launch? See https://github.com/singerdmx/flutter-quill/issues/1776
+    final launchUrl = widget.onLaunchUrl ?? _launchUrl;
     launchUrl(link);
   }
 
@@ -626,6 +737,8 @@ class EditableTextLine extends RenderObjectWidget {
       this.hasFocus,
       this.devicePixelRatio,
       this.cursorCont,
+      this.inlineCodeStyle,
+      this.decoration,
       {super.key});
 
   final Line line;
@@ -640,6 +753,8 @@ class EditableTextLine extends RenderObjectWidget {
   final bool hasFocus;
   final double devicePixelRatio;
   final CursorCont cursorCont;
+  final InlineCodeStyle inlineCodeStyle;
+  final BoxDecoration? decoration;
 
   @override
   RenderObjectElement createElement() {
@@ -648,7 +763,6 @@ class EditableTextLine extends RenderObjectWidget {
 
   @override
   RenderObject createRenderObject(BuildContext context) {
-    final defaultStyles = DefaultStyles.getInstance(context);
     return RenderEditableTextLine(
         line,
         textDirection,
@@ -659,13 +773,13 @@ class EditableTextLine extends RenderObjectWidget {
         _getPadding(),
         color,
         cursorCont,
-        defaultStyles.inlineCode!);
+        inlineCodeStyle,
+        decoration);
   }
 
   @override
   void updateRenderObject(
       BuildContext context, covariant RenderEditableTextLine renderObject) {
-    final defaultStyles = DefaultStyles.getInstance(context);
     renderObject
       ..setLine(line)
       ..setPadding(_getPadding())
@@ -676,7 +790,8 @@ class EditableTextLine extends RenderObjectWidget {
       ..hasFocus = hasFocus
       ..setDevicePixelRatio(devicePixelRatio)
       ..setCursorCont(cursorCont)
-      ..setInlineCodeStyle(defaultStyles.inlineCode!);
+      ..setInlineCodeStyle(inlineCodeStyle)
+      ..setDecoration(decoration);
   }
 
   EdgeInsetsGeometry _getPadding() {
@@ -703,6 +818,7 @@ class RenderEditableTextLine extends RenderEditableBox {
     this.color,
     this.cursorCont,
     this.inlineCodeStyle,
+    this.decoration,
   );
 
   RenderBox? _leading;
@@ -721,6 +837,7 @@ class RenderEditableTextLine extends RenderEditableBox {
   List<TextBox>? _selectedRects;
   late Rect _caretPrototype;
   InlineCodeStyle inlineCodeStyle;
+  BoxDecoration? decoration;
   final Map<TextLineSlot, RenderBox> children = <TextLineSlot, RenderBox>{};
 
   Iterable<RenderBox> get _children sync* {
@@ -836,6 +953,12 @@ class RenderEditableTextLine extends RenderEditableBox {
     markNeedsLayout();
   }
 
+  void setDecoration(BoxDecoration? newDecoration) {
+    if (decoration == newDecoration) return;
+    decoration = newDecoration;
+    markNeedsPaint();
+  }
+
   // Start selection implementation
 
   bool containsTextSelection() {
@@ -925,10 +1048,6 @@ class RenderEditableTextLine extends RenderEditableBox {
         _getBoxes(TextSelection(baseOffset: 0, extentOffset: line.length - 1))
             .where((element) => element.top < lineDy && element.bottom > lineDy)
             .toList(growable: false);
-    if (lineBoxes.isEmpty) {
-      // Empty line, line box is empty
-      return TextRange.collapsed(position.offset);
-    }
     return TextRange(
         start: getPositionForOffset(
           Offset(lineBoxes.first.left, lineDy),
@@ -1228,6 +1347,15 @@ class RenderEditableTextLine extends RenderEditableBox {
           ),
         );
       }
+    }
+    final boxDecoration = decoration;
+    if (boxDecoration != null) {
+      final paintRect = offset & size;
+      boxDecoration.createBoxPainter().paint(
+            context.canvas,
+            paintRect.topLeft,
+            ImageConfiguration(size: paintRect.size),
+          );
     }
 
     if (_body != null) {
