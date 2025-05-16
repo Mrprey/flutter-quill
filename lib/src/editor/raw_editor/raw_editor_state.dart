@@ -1561,9 +1561,6 @@ class QuillRawEditorState extends EditorState
       } else {
         _showCaretOnScreen();
       }
-    } else {
-      widget.configurations.focusNode.requestFocus();
-    }
   }
 
   /// Shows the selection toolbar at the location of the current cursor.
