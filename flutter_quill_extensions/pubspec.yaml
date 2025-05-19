@@ -38,7 +38,7 @@ dependencies:
   flutter_quill:
     git:
       url: https://github.com/Mrprey/flutter-quill.git
-      ref: 0539ae0175a87252ee12d5df13eb86d077cf6350
+      ref: 3d44530b294074d53c6a078123a58bb37af289b9
   photo_view: ^0.15.0
   youtube_explode_dart: ^2.2.1
 
